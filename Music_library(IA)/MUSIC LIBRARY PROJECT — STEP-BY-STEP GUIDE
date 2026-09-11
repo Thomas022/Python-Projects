@@ -1,0 +1,210 @@
+MUSIC LIBRARY PROJECT — STEP-BY-STEP GUIDE
+========================================
+
+This guide turns your music_library.py requests into chronological steps.
+Follow them in order to build the project incrementally. Later steps replace
+some earlier approaches, such as converting getter methods into properties
+and consolidating standalone examples into run_demo().
+
+STEP 1 — Create the Track class
+Create music_library.py and define a class named Track.
+Add an __init__() method that accepts title (string), artist (string), and
+duration (integer in seconds). Store each parameter as an instance attribute
+using self.
+
+STEP 2 — Create and inspect a sample track
+Below the class definition, with proper spacing, create sample_track:
+  Title: Bohemian Rhapsody
+  Artist: Queen
+  Duration: 354 seconds
+Print each attribute using dot notation to verify the object was created.
+
+STEP 3 — Add playback behavior
+Define play() in Track. Use an f-string to print:
+  Now playing: [title] by [artist]
+
+STEP 4 — Return formatted track information
+Define get_info() to return, rather than print, the title, artist, and duration.
+Convert the duration from seconds into minutes and seconds (M:SS).
+Example: Bohemian Rhapsody by Queen (5:54).
+
+STEP 5 — Allow duration extensions
+Define extend_duration(extra_seconds), accepting an integer.
+Add extra_seconds to the track's duration and print a confirmation showing
+the new total duration.
+
+STEP 6 — Test the initial methods
+Create a Track for Stairway to Heaven by Led Zeppelin, lasting 482 seconds.
+Call play(), print get_info(), call extend_duration(10), and print get_info()
+again. Verify the duration changes from 8:02 to 8:12.
+
+STEP 7 — Count plays across all tracks
+Add total_plays = 0 at the class level, before __init__().
+Update play() to increment Track.total_plays by one whenever any track plays.
+
+STEP 8 — Count plays for each individual track
+Initialize self.play_count to zero in __init__().
+Update play() to increment self.play_count as well as Track.total_plays.
+
+STEP 9 — Verify individual and shared play counts
+Create two different tracks. Play the first three times and the second twice.
+Print each track's play_count and Track.total_plays.
+Verify the individual counts are 3 and 2, and the total is their sum, 5.
+
+STEP 10 — Use protected attribute naming
+Rename title, artist, and duration storage to _title, _artist, and _duration.
+Update all methods that reference these attributes.
+A single underscore indicates nonpublic data by convention.
+
+STEP 11 — Validate constructor input
+Before assigning attributes in __init__(), raise ValueError with a descriptive
+message if the title is empty, the artist is empty, or duration is zero or less.
+
+STEP 12 — Add getter methods
+Define get_title(), get_artist(), and get_duration().
+Each method returns the corresponding protected attribute value.
+
+STEP 13 — Test invalid constructor arguments
+At the bottom of music_library.py, add separate try-except blocks for:
+  - An empty title.
+  - An empty artist.
+  - A duration of zero.
+Catch ValueError in each case and print the error message.
+
+STEP 14 — Convert getters into properties
+Replace get_title(), get_artist(), and get_duration() with properties using
+@property. Name the properties title, artist, and duration.
+Access them like attributes, without parentheses.
+
+STEP 15 — Add a validated duration setter
+Add @duration.setter to allow duration changes only when the new value is
+positive. For invalid values, raise ValueError with this exact message:
+  Duration must be positive
+
+STEP 16 — Add a formatted duration property
+Create a read-only duration_formatted property that returns M:SS.
+For example, 354 seconds should return "5:54". Do not add a setter.
+
+STEP 17 — Test property access and assignment
+Create a Track for Hotel California by Eagles, lasting 390 seconds.
+Access its properties without parentheses.
+Set duration to 400, then attempt to set it to -10 inside a try-except block.
+Read duration_formatted and verify it is "6:40" after the invalid assignment.
+
+STEP 18 — Create the Song subclass
+Define Song as a subclass of Track with an additional genre argument.
+Call super().__init__(title, artist, duration), then assign self._genre.
+
+STEP 19 — Add song-specific properties and playback
+Add a genre property that returns _genre.
+Override Song.play() to print:
+  Now playing [genre] song: [title] by [artist]
+Preserve the shared and individual play-count behavior.
+
+STEP 20 — Create the Episode subclass
+Define Episode as a subclass of Track with host and episode_number attributes.
+Override play() to print:
+  Now playing podcast: [title] - Episode [episode_number], hosted by [host]
+
+STEP 21 — Compare parent and child behavior
+Create these instances:
+  Track: Sound Effect, Studio, 5 seconds.
+  Song: Imagine, John Lennon, 183 seconds, genre Rock.
+  Episode: Tech Talk, NPR, 1800 seconds, host Jane Smith, episode number 42.
+Call play() on each and observe the different messages.
+Access title and duration on the Song and Episode to verify inheritance.
+
+STEP 22 — Create the Audiobook subclass
+Define Audiobook as a subclass of Track.
+Add narrator and chapter_count attributes, and initialize current_chapter to 1.
+Add next_chapter() to advance only when not already at the final chapter.
+Override play() to show the current chapter.
+
+STEP 23 — Extend the parent's information method
+Override get_info() in Song.
+First call super().get_info(), then append the genre to the returned string.
+
+STEP 24 — Test audiobook chapter navigation
+Create an Audiobook with:
+  Title: The Hobbit
+  Artist: J.R.R. Tolkien
+  Duration: 39600 seconds (11 hours)
+  Narrator: Martin Freeman
+  Chapter count: 19
+Call play(), call next_chapter() twice, then call play() again.
+Verify the displayed chapter changes from 1 to 3.
+
+STEP 25 — Create the Playlist class
+Define Playlist with a name attribute and an empty protected list, _tracks.
+Add these methods:
+  add_track(track): append a track to the list.
+  get_total_duration(): return the sum of all track durations in seconds.
+  play_all(): call play() on each track in the playlist.
+
+STEP 26 — Demonstrate a mixed playlist
+Create a playlist named My Favorites.
+Add a Song, an Episode, and an Audiobook.
+Call play_all() and observe how each type responds differently to play().
+This demonstrates polymorphism.
+
+STEP 27 — Format the playlist's total duration
+Add a read-only total_duration_formatted property to Playlist.
+Return the total duration in H:MM:SS format, padding minutes and seconds
+to two digits.
+
+STEP 28 — Add a readable Track representation
+Define Track.__str__() to return:
+  [title] by [artist] (M:SS)
+Printing a Track object should display this human-readable description.
+
+STEP 29 — Add a constructor-style Track representation
+Define Track.__repr__() to return a string resembling valid Python code:
+  Track('Bohemian Rhapsody', 'Queen', 354)
+Use appropriate quoting for string arguments.
+
+STEP 30 — Customize subclass representations
+Override __str__() and __repr__() in Song, Episode, and Audiobook.
+Include each subclass's specific attributes.
+For example, Song.__repr__() should follow this structure:
+  Song('title', 'artist', duration, 'genre')
+
+STEP 31 — Test both representations for all track types
+Create instances of Track, Song, Episode, and Audiobook.
+For each object, use print(object) to see __str__(), then use
+print(repr(object)) to see __repr__().
+
+STEP 32 — Consolidate the examples into run_demo()
+Create a function named run_demo() that exercises the library:
+  - Create Track, Song, Episode, and Audiobook instances.
+  - Access properties instead of directly accessing protected attributes.
+  - Demonstrate the child classes' additional features.
+  - Call play() on a mixed list of track types.
+  - Print objects and their repr() representations.
+  - Create and use a Playlist.
+Include checks that the demonstrated methods and properties work correctly.
+
+STEP 33 — Add a dedicated validation test function
+Create test_validation() with these four tests:
+  - Creating Track with an empty title raises ValueError.
+  - Creating Track with an empty artist raises ValueError.
+  - Creating Track with zero duration raises ValueError.
+  - Assigning an invalid duration through the setter raises ValueError.
+Each test must print PASSED or FAILED according to whether the expected
+exception was raised.
+
+STEP 34 — Document the code
+Add docstrings to describe the module, classes, methods, and functions.
+Add explanatory comments for the steps and concepts developed throughout
+the project, including the earlier examples and validation exercises.
+
+STEP 35 — Create this project guide
+Collect all music_library.py project prompts and turn them into an ordered
+text document that can be followed as a step-by-step exercise.
+
+RUNNING THE COMPLETED PROJECT
+=============================
+Run the following command from the directory containing music_library.py:
+  python3 music_library.py
+
+The completed script calls run_demo() and test_validation() from its
+if __name__ == "__main__" block.
