@@ -1,0 +1,12 @@
+Extra Challenge (TO-DO9
+Congratulations! You’ve successfully built a music library system using object-oriented programming principles! If you’d like to extend your Music Library Manager, try one of these advanced challenges:
+
+a. Create a User class that has a listening history and favorite tracks, with methods to recommend tracks based on most-played genres.
+
+b. Add a @classmethod called from_string to Track that creates a Track from a formatted string like "Title|Artist|Duration".
+
+c. Implement __eq__ and __hash__ methods so Track objects can be compared and used in sets/dictionaries.
+
+d. Create a Library class that manages multiple playlists and provides search functionality to find tracks by title or artist.
+
+Excellent work on mastering object-oriented programming!
