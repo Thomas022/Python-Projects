@@ -68,6 +68,16 @@ email-summarizer/
 - To share this app with someone who doesn't have Python installed, it would need to be packaged into a standalone executable (e.g. with [PyInstaller](https://pyinstaller.org/)) — not yet set up in this version.
 - The AI model used is `gpt-4o-mini`. You can change this in the `_call_openai` method if you'd like to try a different model.
 
+## Pictures
+
+![App screenshot](Picture1.png)
+
+![App screenshot](Picture2.png)
+
+![App screenshot](Picture3.png)
+
 ## License
 
 Personal / prototype project — no license specified yet.
+
+
