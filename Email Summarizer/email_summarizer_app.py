@@ -105,6 +105,8 @@ class EmailSummarizerApp(ctk.CTk):
         self.email_textbox = ctk.CTkTextbox(self, height=220)
         self.email_textbox.pack(padx=20, pady=5, fill="x")
 
+        # ---------- Section 2: Paste button ----------
+
         self.paste_button = ctk.CTkButton(
             self,
             text="Paste",
@@ -113,7 +115,7 @@ class EmailSummarizerApp(ctk.CTk):
         )
         self.paste_button.pack(padx=(0, 5), pady=(0, 5), anchor="e", side="right")
 
-        # ---------- Section 2: Summarize button ----------
+        # ---------- Section 3: Summarize button ----------
         self.summarize_button = ctk.CTkButton(
             self,
             text="Summarize",
@@ -125,7 +127,7 @@ class EmailSummarizerApp(ctk.CTk):
         self.status_label = ctk.CTkLabel(self, text="", text_color="gray")
         self.status_label.pack(padx=20, pady=(0, 5))
 
-        # ---------- Section 3: Output label + textbox ----------
+        # ---------- Section 4: Output label + textbox ----------
         output_label = ctk.CTkLabel(
             self,
             text="AI Summary:",
