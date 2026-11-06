@@ -1,0 +1,3 @@
+# Question-dependent retrieval and a boundary correction
+
+The learner reported that the shipping question selected the shipping passage and an unmatched warranty question selected no passage. They initially attributed the changed generation output to retrieval input; the teacher clarified that the unchanged question remained the input while retrieval output carried the edited passage. The learner acknowledged the correction, but independent recall of this distinction has not yet been demonstrated. The next lesson should reinforce that boundary while introducing diagnosis of retrieval versus generation failures.

@@ -1,0 +1,55 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>15 · Keep draft history</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script><script src="../assets/results-table-15.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 15 · 10 minutes</p>
+<h1>Keep the drafts you checked</h1>
+<p>Today’s win: inspect earlier drafts from the final state, even after a retry replaces the current draft.</p>
+<div class="card"><strong>Quick recall</strong><p>After repair succeeds, does draft still contain the first $50 answer?</p><details><summary>Check</summary><p>No. It contains the latest $5 draft. Previously, you needed the execution log to see the earlier draft.</p></details></div>
+<h2>1 · Current value and history</h2>
+<p>Keep draft for the current answer. Add draft_history for a list of checked attempts. Each entry stores the attempt number, draft text, and acceptance decision.</p>
+<pre><code>class DraftCheck(TypedDict):
+    attempt: int
+    draft: str
+    accepted: bool
+
+# Inside check_answer, after computing accepted:
+entry = {
+    "attempt": state["generation_attempts"],
+    "draft": state["draft"],
+    "accepted": accepted,
+}
+return {
+    "answer_ok": accepted,
+    "draft_history": state["draft_history"] + [entry],
+    # Other checker updates stay the same.
+}</code></pre>
+<p>The + creates a new list containing the earlier entries followed by this entry. This example uses ordinary state replacement: the checker returns the complete updated list. Returning only [entry] would lose the previous entries. We do not modify the input list in place.</p>
+<p>Record the entry in check_answer so its decision belongs to the draft just checked. A history entry does not mean the draft was released.</p>
+<h2>2 · Predict, run, compare</h2>
+<p>Open the <a href="0015-keep-draft-history.py">Python example</a>. The three modes behave as in Lesson 14. This remains a local simulation with no model call. Predict the table, then run:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0015-keep-draft-history.py good
+.venv-langgraph/bin/python lessons/0015-keep-draft-history.py repair
+.venv-langgraph/bin/python lessons/0015-keep-draft-history.py stuck</code></pre>
+<p>Use the final History entries, History prices, Final draft, and Final node lines. All modes still retrieve twice; history changes what we retain, not the retry budgets.</p>
+<h2>3 · Follow repair before and after</h2>
+<ol><li><strong>Initially:</strong> draft_history is [].</li><li><strong>First generate:</strong> draft becomes $50. History is still empty because the checker has not run.</li><li><strong>First check_answer:</strong> history becomes [{attempt: 1, draft: "$50…", accepted: False}]. Feedback describes the correction.</li><li><strong>Second generate:</strong> draft becomes $5. History still contains the checked $50 attempt.</li><li><strong>Second check_answer:</strong> history contains both attempts, with decisions [False, True].</li><li><strong>Release:</strong> answer copies the latest $5 draft. The rejected $50 entry remains available for inspection.</li></ol>
+<p>The shortened draft strings above show prices; the Python entries store the full text and citation. History is held in this run’s state. This lesson does not save it to disk or add persistence between runs.</p>
+<form data-quiz data-answer="b" data-explanation="check_answer knows whether the current draft passed, so it can store the draft and its decision together." data-hint="Which node has just made the acceptance decision?"><fieldset><legend>Where should we record a checked draft and its acceptance decision?</legend><label><input type="radio" name="q1" value="a"> retrieve</label><label><input type="radio" name="q1" value="b"> check_answer</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>Send your results</h2>
+<p>Choose your results below and write your explanation. You can save them for your teacher to check, or use Check table for immediate feedback. History prices are listed in order, from the first checked draft to the last.</p>
+<form data-results-table data-lesson-id="15">
+<script type="application/json" id="saved-lesson-answers">{}</script>
+<div class="results-scroll" role="region" aria-label="Lesson results table" tabindex="0">
+<table class="results-table"><caption>Lesson 15 results</caption><thead><tr><th scope="col">Mode</th><th scope="col">History entries</th><th scope="col">History prices</th><th scope="col">Final draft price</th><th scope="col">Final node</th></tr></thead><tbody>
+<tr><th scope="row">good</th><td><select name="good-entries" aria-label="good: History entries"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-prices" aria-label="good: History prices"><option value="">Choose…</option><option>$5</option><option>$50 → $5</option><option>$50 → $50</option></select><span class="cell-feedback"></span></td><td><select name="good-price" aria-label="good: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="good-node" aria-label="good: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">repair</th><td><select name="repair-entries" aria-label="repair: History entries"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-prices" aria-label="repair: History prices"><option value="">Choose…</option><option>$5</option><option>$50 → $5</option><option>$50 → $50</option></select><span class="cell-feedback"></span></td><td><select name="repair-price" aria-label="repair: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="repair-node" aria-label="repair: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">stuck</th><td><select name="stuck-entries" aria-label="stuck: History entries"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-prices" aria-label="stuck: History prices"><option value="">Choose…</option><option>$5</option><option>$50 → $5</option><option>$50 → $50</option></select><span class="cell-feedback"></span></td><td><select name="stuck-price" aria-label="stuck: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="stuck-node" aria-label="stuck: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+</tbody></table></div>
+<p><label for="retry-reason"><strong>One question:</strong> Why does draft_history still contain $50 after repair releases $5? One sentence is enough.</label><textarea id="retry-reason" name="reason" rows="3"></textarea></p>
+<div class="results-actions"><button type="button" data-save-results>Save answers into HTML</button><button type="submit">Check table</button><button type="button" data-copy-results>Copy results for chat</button></div>
+<p>Click <strong>Save answers into HTML</strong>, select this lesson’s original file (<code>Desktop/learn/lessons/0015-keep-draft-history.html</code>), and allow writing when your browser asks. Then tell your teacher: “Check my Lesson 15 answers.” Your answers will be restored when you reopen the saved file. Save again after editing. If the button reports that saving is unavailable, try Chrome or Edge, or copy your results into chat.</p>
+<p class="feedback" data-results-feedback role="status" aria-live="polite"></p>
+<p hidden data-copy-help>Copy the text below and paste it into chat:</p>
+<textarea hidden data-results-export aria-label="Results to copy" rows="7" readonly></textarea>
+</form>
+<noscript><p>Enable JavaScript to save, check, and copy results. You can still fill the table and share your selections manually.</p></noscript>
+<footer><a href="0016-summarize-a-run.html">Next lesson</a> · <a href="0014-use-repair-feedback.html">Previous lesson</a> · <a href="../reference/generation-retries.html">Generation-retry reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Primary reading: conditional edges</a></footer>
+</main></body></html>

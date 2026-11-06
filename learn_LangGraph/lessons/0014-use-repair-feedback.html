@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>14 · Use repair feedback</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script><script src="../assets/results-table-14.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 14 · 10 minutes</p>
+<h1>Tell the retry what to fix</h1>
+<p>Today’s win: pass a useful correction from check_answer to the next generate call.</p>
+<div class="card"><strong>Quick recall</strong><p>Does answer_ok=False tell you what is wrong with a draft?</p><details><summary>Check</summary><p>No. It records a decision. A separate feedback field can describe the correction.</p></details></div>
+<h2>1 · Decision versus feedback</h2>
+<p>Lesson 13 retried the right node. Now we give that node information about its mistake. The router still reads answer_ok; the generator reads repair_feedback.</p>
+<pre><code>check_answer rejects $50
+  → answer_ok = False
+  → repair_feedback = "Replace the draft with this exact evidence and citation: ...$5..."
+  → generate reads that feedback
+  → check_answer checks the replacement draft</code></pre>
+<p>This is a deterministic local simulation with no model call. In a model-based version, you would include the accepted evidence and checker feedback in the retry prompt. Feedback can help; the new draft still needs checking.</p>
+<h2>2 · Predict, run, compare</h2>
+<p>Open the <a href="0014-use-repair-feedback.py">Python example</a>. Good starts correct. Repair writes $50 until feedback is available, then uses the accepted passage. Stuck deliberately ignores feedback and keeps writing $50.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0014-use-repair-feedback.py good
+.venv-langgraph/bin/python lessons/0014-use-repair-feedback.py repair
+.venv-langgraph/bin/python lessons/0014-use-repair-feedback.py stuck</code></pre>
+<p>Predict the table below first. Then compare the “feedback available to generate” lines with the checker updates.</p>
+<div class="card"><strong>Retrieval reminder</strong><p>All three modes retrieve twice, just as in Lesson 13: the first passage gives duration, which fails the cost check; the second gives the $5 cost. Retrying generation adds no retrieval calls.</p></div>
+<h2>3 · Follow the state in repair</h2>
+<ol><li><strong>Before generation:</strong> passage says $5; repair_feedback is empty; generation_attempts is 0.</li><li><strong>First generate:</strong> draft says $50; generation_attempts becomes 1. Passage stays $5.</li><li><strong>First check_answer:</strong> answer_ok becomes False; repair_feedback contains the required $5 passage and citation.</li><li><strong>Second generate:</strong> reads feedback, writes the $5 draft, and sets generation_attempts to 2. The earlier feedback remains until the checker updates it.</li><li><strong>Second check_answer:</strong> accepts the draft and clears repair_feedback. The router chooses release even though the attempt limit has been reached.</li></ol>
+<p>The checker clears feedback on acceptance so a fixed error is no longer described as needing repair. Stuck still reaches reject_answer after two drafts: feedback does not remove the retry limit.</p>
+<form data-quiz data-answer="b" data-explanation="answer_ok controls routing; repair_feedback tells generation what to change." data-hint="Which field contains a correction rather than a Boolean?"><fieldset><legend>Which field tells the retry what to change?</legend><label><input type="radio" name="q1" value="a"> answer_ok</label><label><input type="radio" name="q1" value="b"> repair_feedback</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>Send your results</h2>
+<p>Choose your results below and write your explanation. You can save them for your teacher to check, or use Check table for immediate feedback. “Final draft price” means the price in draft, even if the final answer is a refusal.</p>
+<form data-results-table data-lesson-id="14">
+<script type="application/json" id="saved-lesson-answers">{}</script>
+<div class="results-scroll" role="region" aria-label="Lesson results table" tabindex="0">
+<table class="results-table"><caption>Lesson 14 results</caption><thead><tr><th scope="col">Mode</th><th scope="col">Retrievals</th><th scope="col">Generations</th><th scope="col">Final draft price</th><th scope="col">Final node</th></tr></thead><tbody>
+<tr><th scope="row">good</th><td><select name="good-retrievals" aria-label="good: Retrievals"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-generations" aria-label="good: Generations"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-price" aria-label="good: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="good-node" aria-label="good: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">repair</th><td><select name="repair-retrievals" aria-label="repair: Retrievals"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-generations" aria-label="repair: Generations"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-price" aria-label="repair: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="repair-node" aria-label="repair: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">stuck</th><td><select name="stuck-retrievals" aria-label="stuck: Retrievals"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-generations" aria-label="stuck: Generations"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-price" aria-label="stuck: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="stuck-node" aria-label="stuck: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+</tbody></table></div>
+<p><label for="retry-reason"><strong>One question:</strong> What does repair_feedback tell generate that answer_ok=False does not? One sentence is enough.</label><textarea id="retry-reason" name="reason" rows="3"></textarea></p>
+<div class="results-actions"><button type="button" data-save-results>Save answers into HTML</button><button type="submit">Check table</button><button type="button" data-copy-results>Copy results for chat</button></div>
+<p>Click <strong>Save answers into HTML</strong>, select this lesson’s original file (<code>Desktop/learn/lessons/0014-use-repair-feedback.html</code>), and allow writing when your browser asks. Then tell your teacher: “Check my Lesson 14 answers.” Your answers will be restored when you reopen the saved file. Save again after editing. If the button reports that saving is unavailable, try Chrome or Edge, or copy your results into chat.</p>
+<p class="feedback" data-results-feedback role="status" aria-live="polite"></p>
+<p hidden data-copy-help>Copy the text below and paste it into chat:</p>
+<textarea hidden data-results-export aria-label="Results to copy" rows="7" readonly></textarea>
+</form>
+<noscript><p>Enable JavaScript to save, check, and copy results. You can still fill the table and share your selections manually.</p></noscript>
+<footer><a href="0015-keep-draft-history.html">Next lesson</a> · <a href="0013-retry-the-draft.html">Previous lesson</a> · <a href="../reference/generation-retries.html">Generation-retry reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Primary reading: conditional edges</a></footer>
+</main></body></html>

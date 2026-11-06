@@ -1,0 +1,37 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>11 · Check the answer</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 11 · 10 minutes</p>
+<h1>Good evidence can still produce a bad answer</h1>
+<p>Today’s win: catch a generated price that disagrees with accepted evidence, even when its citation looks correct.</p>
+<div class="card"><strong>Recall from memory</strong><p>B with <code>--with-cost</code> retrieved twice in Lesson 10. What did the first passage answer, and why was the second accepted?</p><details><summary>Check your answer</summary><p>The first answered duration. The second supplied the cost per order that B asked for.</p></details></div>
+<h2>1 · Separate the draft from the final answer</h2>
+<p>Evidence: “Standard shipping costs $5 per order.” Draft: “Standard shipping costs $50 per order. [Shipping policy, section 2]” The evidence fits the question, but generation changed the price. A correct citation does not make that claim supported.</p>
+<p>Open the <a href="0011-check-the-answer.py">Python example</a>. It keeps Lesson 10’s retrieval loop and question-aware check. Generation now writes <code>draft</code>. A new <code>check_answer</code> node decides whether to release it into <code>answer</code>.</p>
+<pre><code>retrieve → check_evidence → generate → check_answer
+              ↓ retry                     ↓ accepted: release → END
+              ↓ fallback → END            ↓ rejected: reject_answer → END</code></pre>
+<p>The retry returns to retrieve. Accepted evidence goes to generate. The graph uses <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">conditional edges</a> for both decisions.</p>
+<h2>2 · See a citation-only check fail</h2>
+<p>Predict the final node and price, then run:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0011-check-the-answer.py b --with-cost --bad-draft --citation-only</code></pre>
+<details><summary>Check after running</summary><p>Two retrievals → generate → check_answer → release. The final answer says $50. The first wrong step is generate, which changed $5 to $50. The citation-only check then failed to catch that mistake.</p></details>
+<h2>3 · Compare the draft with the evidence</h2>
+<p>For this exercise, we require an exact quotation plus the accepted source citation:</p>
+<pre><code>expected = f'{state["passage"]} [{state["source"]}]'
+accepted = state["draft"] == expected
+return {"answer_ok": accepted, "answer_reason": reason}</code></pre>
+<div class="card"><strong>A narrow teaching rule.</strong><p>This equality check rejects valid paraphrases too. It works here because the required answer format is an exact quotation. It does not establish whether the document itself is true or current. No model runs: <code>--bad-draft</code> deliberately simulates a generation error.</p></div>
+<h2>4 · Predict, run, compare</h2>
+<p>Use the default answer check. Predict the final node and whether the draft becomes the final answer.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0011-check-the-answer.py b --with-cost
+.venv-langgraph/bin/python lessons/0011-check-the-answer.py b --with-cost --bad-draft
+.venv-langgraph/bin/python lessons/0011-check-the-answer.py b</code></pre>
+<details><summary>Check after running</summary><p>With cost: two retrievals, then release; the final answer quotes $5 with section 2. With cost and a bad draft: two retrievals, then reject_answer; the $50 draft remains visible for diagnosis, but answer contains a refusal. Without cost: two retrievals, then fallback; generate and check_answer never run.</p></details>
+<h2>5 · Follow the state changes</h2>
+<p>For B with <code>--with-cost --bad-draft</code>:</p>
+<ol><li><strong>After the second retrieval:</strong> attempts is 2, passage contains $5, and source is section 2.</li><li><strong>After check_evidence:</strong> evidence_ok becomes True. The accepted passage stays in state.</li><li><strong>After generate:</strong> draft contains $50 and the section 2 citation. Passage still contains $5; writing draft does not replace passage.</li><li><strong>After check_answer:</strong> answer_ok becomes False. The router chooses reject_answer.</li><li><strong>After reject_answer:</strong> answer contains the refusal. Draft remains available to inspect. END stops execution; it is not a node that writes an answer.</li></ol>
+<form data-quiz data-answer="b" data-explanation="The evidence answers the question, but the generated draft changes its price." data-hint="Compare $5 in passage with $50 in draft."><fieldset><legend>Evidence says $5; the draft says $50 with the correct citation. Where is the first wrong step?</legend><label><input type="radio" name="q1" value="a"> retrieve</label><label><input type="radio" name="q1" value="b"> generate</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<p>There is no generation retry in this lesson. Rejected evidence uses the existing bounded retrieval loop; a rejected draft ends with a refusal.</p>
+<h2>Tell your teacher what you found</h2>
+<p>“With --bad-draft --citation-only, B ended at __ and released a price of __. The first wrong step was __; the check missed it because __. With the default answer check and --bad-draft, B ended at __. The passage still said __ while the draft said __. Without --with-cost, B ended at __ and never ran __.” Include the final sourced answer for B with --with-cost and no bad draft.</p>
+<footer><a href="0012-follow-the-first-wrong-step.html">Next lesson</a> · <a href="0010-check-the-question.html">Previous lesson</a> · <a href="../reference/answer-checking.html">Answer-checking reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Primary reading: conditional edges</a></footer>
+</main></body></html>

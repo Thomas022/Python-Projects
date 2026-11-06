@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>08 · Retry retrieval once</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 08 · 10 minutes</p>
+<h1>Retry retrieval once.</h1>
+<p>Today’s win: give rejected evidence one more retrieval attempt, with a clear stopping rule.</p>
+<div class="card"><strong>Recall from memory</strong><p>Which function stores <code>evidence_ok</code>, and which function chooses the next node? Did Case A’s fallback repair retrieval?</p><details><summary>Check your answer</summary><p><code>check_evidence</code> stores the decision; <code>choose_next</code> chooses the destination. Fallback prevented generation from using the irrelevant passage, but retrieval’s fault remained.</p></details></div>
+<h2>1 · Add a way back</h2>
+<p>Our document question stays fixed: “How long does standard shipping take?” In Lesson 7, rejected evidence immediately led to fallback. Now the router can send the workflow back to <code>retrieve</code>.</p>
+<pre aria-label="Graph with one retrieval retry"><code>START → retrieve → check_evidence
+          ↑          ├─ accepted → generate → END
+          └──────────┤─ rejected, attempts &lt; 2
+                     └─ rejected, attempts ≥ 2 → fallback → END</code></pre>
+<p>A conditional edge chooses the next node from the current state; choosing an earlier node creates a loop. See the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">official conditional edges guide</a>. Our stopping rule permits <strong>two retrieval attempts total: the first attempt plus one retry</strong>.</p>
+<h2>2 · Count retrievals in state</h2>
+<p>Open the <a href="0008-retry-retrieval-once.py">Python example</a>. Input state starts with <code>attempts: 0</code>. Each retrieval returns the previous count plus one, along with its passage and source. The router reads that updated count after the evidence check.</p>
+<pre><code>MAX_ATTEMPTS = 2
+
+def choose_next(state: State) -&gt; Literal["generate", "retrieve", "fallback"]:
+    if state["evidence_ok"]:
+        return "generate"
+    if state["attempts"] &lt; MAX_ATTEMPTS:
+        return "retrieve"
+    return "fallback"</code></pre>
+<p>Check acceptance first: useful evidence on the final allowed attempt should still reach generation. The limit stops another retrieval when evidence fails.</p>
+<h2>3 · Follow Case A’s state</h2>
+<ol><li><strong>Before retrieval:</strong> state contains the question, <code>case: "a"</code>, and <code>attempts: 0</code>.</li><li><strong>First retrieval:</strong> state now has <code>attempts: 1</code> and the returns passage with its source.</li><li><strong>First check:</strong> <code>evidence_ok: False</code>. The router sees 1 &lt; 2 and chooses <code>retrieve</code>.</li><li><strong>Second retrieval:</strong> <code>attempts: 2</code>. The shipping passage and shipping source replace the earlier values; the question stays unchanged.</li><li><strong>Second check:</strong> the check replaces its earlier decision and reason. Now <code>evidence_ok: True</code>, so the router chooses <code>generate</code>.</li></ol>
+<p>With the default state update behavior used here, returning an existing field replaces its value; omitted fields remain. See <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#reducers">the official reducer guide</a>. Every new retrieval goes through the check before routing, so the old decision does not choose the new passage’s path.</p>
+<div class="card"><strong>A retry needs a chance to find different evidence.</strong><p>This example simulates an alternative document on Case A’s second retrieval. Repeating an unchanged deterministic search would return the same result. No model or search service runs here. We carry forward Lesson 7’s rule accepting “takes” or “arrives”; it remains a narrow phrase check.</p></div>
+<h2>4 · Predict, run, compare</h2>
+<p>A gets returns evidence first, then shipping evidence. B gets shipping evidence immediately. C gets no evidence on either attempt. Predict the retrieval count and final node for each.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0008-retry-retrieval-once.py a
+.venv-langgraph/bin/python lessons/0008-retry-retrieval-once.py b
+.venv-langgraph/bin/python lessons/0008-retry-retrieval-once.py c</code></pre>
+<p>Read the <code>Node:</code>, <code>attempts</code>, and <code>evidence_ok</code> lines. Each <code>Node:</code> block shows that node’s updates, rather than the full state.</p>
+<details><summary>Check after running</summary><p>A: two retrievals → generate. B: one retrieval → generate. C: two retrievals → fallback. A ends with “Standard shipping arrives in 3 to 5 business days. [Shipping policy, section 1]”. C stops even though its evidence is still missing.</p></details>
+<form data-quiz data-answer="b" data-explanation="The failed second check has used both retrieval attempts." data-hint="Compare attempts with MAX_ATTEMPTS after the second retrieval."><fieldset><legend>Case C has evidence_ok False and attempts 2. Which node runs next?</legend><label><input type="radio" name="q1" value="a"> The retrieve node.</label><label><input type="radio" name="q1" value="b"> The fallback node.</label><label><input type="radio" name="q1" value="c"> The generate node.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<form data-quiz data-answer="a" data-explanation="Acceptance is checked first, so useful evidence on attempt 2 reaches generation." data-hint="Read the first condition in choose_next."><fieldset><legend>Case A has evidence_ok True and attempts 2. Which node runs next?</legend><label><input type="radio" name="q2" value="a"> The generate node.</label><label><input type="radio" name="q2" value="b"> The retrieve node.</label><label><input type="radio" name="q2" value="c"> The fallback node.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>5 · Change the budget</h2>
+<p>Change <code>MAX_ATTEMPTS = 2</code> to <code>MAX_ATTEMPTS = 1</code>. Predict A, B, and C again, then rerun all three. Keep the acceptance check first.</p>
+<details><summary>Check after your edit</summary><p>A now takes fallback after its first rejected passage; it never reaches the shipping document. B still generates after one retrieval. C takes fallback after one retrieval. A smaller budget can stop a potentially useful retry.</p></details>
+<p>Restore the limit to 2. Optional: with <a href="0003-inspect-a-langsmith-trace.html">Lesson 3’s tracing setup</a>, inspect <code>lesson-08-case-a</code>. Compare both retrieve outputs and both check outputs. Tracing sends the question, passages, and answers to your workspace. Turn it off afterward with <code>LANGSMITH_TRACING=false</code> in the project’s <code>.env</code> file.</p>
+<h2>Tell your teacher what you found</h2>
+<p>“With the limit at 2, Case A retrieved __ times and ended at __. On the second retrieval, __ and __ replaced the returns evidence. Case C stopped because __. With the limit at 1, Case A __ while Case B __.” Include Case A’s final answer with the limit restored to 2. Ask follow-up questions about anything unclear.</p>
+<footer><a href="0009-skip-rejected-sources.html">Next lesson</a> · <a href="0007-check-evidence-before-answering.html">Previous lesson</a> · <a href="../reference/bounded-retrieval.html">Retry reference</a> · Primary reading: <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Conditional edges</a></footer>
+</main></body></html>

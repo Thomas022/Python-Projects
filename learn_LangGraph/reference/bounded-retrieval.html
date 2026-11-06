@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bounded retrieval</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<p class="eyebrow">Quick reference</p><h1>Retry with a stopping rule.</h1>
+<pre><code># Start with attempts = 0.
+# retrieve returns attempts + 1, passage, and source.
+# check_evidence checks every new passage.
+
+if state["evidence_ok"]:
+    return "generate"
+if state["attempts"] &lt; MAX_ATTEMPTS:
+    return "retrieve"
+return "fallback"</code></pre>
+<p><code>MAX_ATTEMPTS = 2</code> means one initial retrieval plus one retry. Accepted evidence can reach generation on the last allowed attempt. Rejected evidence at the limit reaches fallback.</p>
+<p>Return both passage and source for every retrieval, including empty results, so the source belongs to the current passage. Recheck after each retrieval. In this example, default state updates replace returned fields and preserve omitted fields; see the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#reducers">official state update guide</a>.</p>
+<p>A loop is a conditional edge back to an earlier node. A retry may help when it changes which evidence is retrieved; it does not guarantee useful evidence. Keep an explicit attempt limit. LangGraph’s separate <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#recursion-limit">recursion limit</a> counts graph super-steps, not retrieval attempts.</p>
+<footer><a href="../lessons/0008-retry-retrieval-once.html">Lesson 08</a> · <a href="evidence-checking.html">Evidence checks</a></footer>
+</main></body></html>

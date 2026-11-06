@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Question-aware evidence</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<p class="eyebrow">Quick reference</p><h1>Check evidence against the question.</h1>
+<p>A passage can be true, on topic, and correctly cited while answering the wrong question. Shipping duration does not establish shipping cost.</p>
+<ol><li>Read what the question asks for.</li><li>Check whether the current passage supplies that information.</li><li>Return the decision and reason from the evidence-check node.</li><li>Let the router generate for accepted evidence, retry rejected evidence within budget, or use fallback at the limit.</li></ol>
+<p>Lesson 10 supports two exact shipping questions with separate phrase rules. Unsupported questions are rejected. This is a teaching rule, not a general validator. Adding relevant evidence and improving the check solve different parts of the workflow.</p>
+<p>The <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">official conditional-edge guide</a> explains routing from state.</p>
+<footer><a href="../lessons/0010-check-the-question.html">Lesson 10</a> · <a href="bounded-retrieval.html">Bounded retrieval</a></footer>
+</main></body></html>

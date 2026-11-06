@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>09 · Skip rejected sources</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 09 · 10 minutes</p>
+<h1>Give the retry a different document.</h1>
+<p>Today’s win: remember which sources retrieval tried, so the next attempt can search elsewhere.</p>
+<div class="card"><strong>Recall from memory</strong><p>Why did Case A generate on attempt 2 in Lesson 8, even though the limit was 2?</p><details><summary>Check your answer</summary><p>The second passage passed the evidence check. The router checks acceptance before deciding whether another retrieval is allowed.</p></details></div>
+<h2>1 · Replace the scripted switch</h2>
+<p>Lesson 8 chose Case A’s second document using its attempt number. Now we search a tiny document list using keyword overlap, like Lesson 4. We add <code>tried_sources</code> to state and skip those sources on later attempts. The graph stays the same:</p>
+<pre><code>START → retrieve → check_evidence
+          ↑          ├─ accepted → generate → END
+          └──────────┤─ rejected, attempts &lt; 2
+                     └─ rejected, attempts ≥ 2 → fallback → END</code></pre>
+<p>Open the <a href="0009-skip-rejected-sources.py">Python example</a>. The returns document deliberately has broad keywords, <code>shipping</code> and <code>delivery</code>. The shipping document has <code>shipping</code> and <code>standard</code>. Retrieval chooses the first matching document in list order. A keyword match can still be irrelevant.</p>
+<h2>2 · Remember a tried source</h2>
+<pre><code>tried = state["tried_sources"]
+for document in DOCUMENTS:
+    if state["skip_tried"] and document["source"] in tried:
+        continue
+    if words &amp; document["keywords"]:
+        return {
+            "attempts": state["attempts"] + 1,
+            "passage": document["passage"],
+            "source": document["source"],
+            "tried_sources": tried + [document["source"]],
+        }</code></pre>
+<p><code>continue</code> skips to the next document. <code>tried + [document["source"]]</code> builds a new list containing the old entries and the current source. We return the complete list: under the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#reducers">default state update rule</a>, this replaces the previous list. LangGraph does not automatically append it.</p>
+<h2>3 · Follow Case A’s state</h2>
+<ol><li><strong>Initially:</strong> <code>attempts: 0</code>, <code>tried_sources: []</code>, question “How long does standard shipping take?”</li><li><strong>First retrieval:</strong> the returns document matches “shipping” first. Attempts becomes 1; the tried list contains “Returns policy, section 2”.</li><li><strong>First check:</strong> rejects the returns passage. The router permits another retrieval.</li><li><strong>Second retrieval:</strong> skips the returns source, then matches the shipping document. Attempts becomes 2; the list now contains both sources. Shipping passage and source replace the earlier evidence.</li><li><strong>Second check:</strong> accepts shipping duration, so generation quotes the passage with its source.</li></ol>
+<div class="card"><strong>Keep the lesson’s limits in mind.</strong><p>This is local keyword search with two documents; no model or search service runs. Each source names one passage, so skipping a source skips that one passage. The evidence check still only recognizes shipping-duration phrases. It is suitable for these shipping questions, not arbitrary questions. A different document may still be irrelevant.</p></div>
+<h2>4 · Predict, run, compare</h2>
+<p>A asks “How long does standard shipping take?” B asks “How long does standard postage take?” C asks “How much does express postage cost?” Predict the sources tried, retrieval count, and final node.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0009-skip-rejected-sources.py a
+.venv-langgraph/bin/python lessons/0009-skip-rejected-sources.py b
+.venv-langgraph/bin/python lessons/0009-skip-rejected-sources.py c</code></pre>
+<details><summary>Check after running</summary><p>A tries returns, then shipping: two retrievals → generate. B matches “standard” only in the shipping document: one retrieval → generate. C has no matching keywords: two retrievals → fallback, with an empty tried list. An empty search still counts as an attempt.</p></details>
+<form data-quiz data-answer="b" data-explanation="The node returns a new complete list, which replaces the old list." data-hint="Look at tried + [document source]."><fieldset><legend>Why does A’s second tried_sources list contain both sources?</legend><label><input type="radio" name="q1" value="a"> LangGraph automatically appends all lists.</label><label><input type="radio" name="q1" value="b"> Retrieval returns the old entries plus the new source.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>5 · Remove the useful change</h2>
+<p>Predict A with skipping disabled, then run:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0009-skip-rejected-sources.py a --repeat</code></pre>
+<p>Compare both <code>source</code> lines and the final node with normal A. The attempt limit remains 2.</p>
+<details><summary>Check after running</summary><p>Both retrievals return the returns document. Both checks reject it; A reaches fallback. Its tried list contains the same source twice because each retrieval records its result. Increasing the budget would repeat the same first match. The retry needs a change in search behavior to reach different evidence here.</p></details>
+<p>Optional: using Lesson 3’s tracing setup, inspect <code>lesson-09-case-a</code> and compare the two retrieval outputs. Tracing sends inputs and outputs to your LangSmith workspace; leave it disabled if you only want local output.</p>
+<h2>Tell your teacher what you found</h2>
+<p>“Normal A tried __ then __ and ended at __. Its tried_sources list kept both entries because __. With --repeat, A retrieved __ twice and ended at __. B needed __ retrieval(s). C’s tried list was __ after __ attempts.” Include normal A’s final sourced answer.</p>
+<footer><a href="0010-check-the-question.html">Next lesson</a> · <a href="0008-retry-retrieval-once.html">Previous lesson</a> · <a href="../reference/bounded-retrieval.html">Retry reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#reducers">Primary reading: state updates</a></footer>
+</main></body></html>

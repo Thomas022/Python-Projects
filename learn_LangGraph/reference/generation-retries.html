@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bounded generation retries</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<h1>Bounded generation retries</h1>
+<p>When accepted evidence supports the question but the draft disagrees with that evidence, retry generation using the accepted passage. Keep a separate count for generation attempts.</p>
+<dl><dt>attempts</dt><dd>Retrieval calls, including the first retrieval. Maximum 2 in Lesson 13.</dd><dt>generation_attempts</dt><dd>Generation calls, including the first draft. Maximum 2 in Lesson 13.</dd><dt>passage</dt><dd>The evidence retained across generation attempts.</dd><dt>draft</dt><dd>The latest generation output. Each retry replaces it.</dd><dt>answer_ok</dt><dd>Whether the current draft has been accepted. Generate resets it to False; check_answer evaluates the new draft.</dd></dl>
+<p>The answer router checks acceptance before the generation limit. Accepted second drafts reach release; rejected second drafts reach reject_answer. Repeating generation can repeat an error, so a bounded retry guarantees termination here, not correctness.</p>
+<p><a href="../lessons/0013-retry-the-draft.html">Lesson 13</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Official conditional-edge guide</a></p>
+</main></body></html>

@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Find the first wrong step</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<h1>Find the first wrong step</h1>
+<p>Inspect executed nodes in order. Compare each node’s input with the update it returns. Find the earliest update that introduces an unsupported value or an incorrect decision.</p>
+<dl><dt>Wrong passage accepted</dt><dd>Check the question, passage, and check_evidence’s decision.</dd><dt>Correct passage, wrong draft</dt><dd>Compare generate’s input passage with its output draft. Generation introduces the error.</dd><dt>Wrong draft released</dt><dd>Inspect check_answer’s decision too: it may have missed an earlier generation error.</dd><dt>No cost evidence</dt><dd>Check the visited nodes. Fallback can follow two evidence checks without any generation or answer checking.</dd></dl>
+<p>Fields that a node does not update retain their previous values in this graph. A $50 draft does not overwrite a $5 passage. A refusal in answer does not erase the rejected draft.</p>
+<p><a href="../lessons/0012-follow-the-first-wrong-step.html">Lesson 12</a> · <a href="https://docs.langchain.com/oss/python/langgraph/streaming">Streaming updates</a> · <a href="https://docs.langchain.com/langsmith/trace-with-langgraph">Inspecting LangSmith traces</a></p>
+</main></body></html>

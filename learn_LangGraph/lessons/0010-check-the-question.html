@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10 · Check the question</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 10 · 10 minutes</p>
+<h1>Does the evidence answer this question?</h1>
+<p>Today’s win: reject a true shipping passage when it answers the wrong shipping question.</p>
+<div class="card"><strong>Recall from memory</strong><p>In Lesson 9, why did A succeed normally but reach fallback with <code>--repeat</code>? How did its tried list keep earlier entries?</p><details><summary>Check your answer</summary><p>Normal retrieval skipped the returns source and found shipping evidence. Repeated retrieval selected returns again. Retrieval returned the old list plus the newly tried source.</p></details></div>
+<h2>1 · A citation can accompany the wrong answer</h2>
+<p>Question: “How much does standard shipping cost?” Passage: “Standard shipping arrives in 3 to 5 business days.” The passage gives duration, not price. Quoting it accurately with its source still fails to answer the question.</p>
+<p>Open the <a href="0010-check-the-question.py">Python example</a>. We keep Lesson 9’s bounded retry and tried-source list. To isolate the evidence check, the default document list now contains only the shipping-duration document. <code>--with-cost</code> adds a second shipping document containing a price.</p>
+<h2>2 · See the old check fail</h2>
+<p>Predict the final node, then run B with the old passage-only check:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0010-check-the-question.py b --passage-only</code></pre>
+<details><summary>Check after running</summary><p>One retrieval → generate. The output gives 3 to 5 business days, although B asks for cost. The first wrong decision is in <code>check_evidence</code>: it accepts duration without reading what the question needs. Retrieval found a topic match; generation quoted it faithfully.</p></details>
+<h2>3 · Read the question inside the check</h2>
+<p>The default check supports exactly two questions: “How long does standard shipping take?” and “How much does standard shipping cost?” It reads the existing <code>question</code> field and uses a different rule for each. Other questions are rejected.</p>
+<pre><code>question = state["question"]
+if question == DURATION_QUESTION:
+    accepted = duration_ok
+    reason = "The question needs shipping duration."
+elif question == COST_QUESTION:
+    accepted = "standard shipping costs $" in passage and "per order" in passage
+    reason = "The question needs shipping cost per order."
+else:
+    accepted = False
+    reason = "This question is outside the two supported questions."
+return {"evidence_ok": accepted, "reason": reason}</code></pre>
+<p>The check stores its decision; <code>choose_next</code> reads it and chooses generate, retrieve, or fallback. This separation follows the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">official conditional-edge pattern</a>. We change the check’s logic without adding a graph node.</p>
+<div class="card"><strong>A deliberately narrow rule.</strong><p>This exact-question and phrase check teaches the difference between duration and cost. Different wording, negation, or conflicting passages can defeat it. It is not a general evidence validator. All documents and answers here are local teaching examples; no model runs.</p></div>
+<h2>4 · Predict, run, compare</h2>
+<p>A asks for standard shipping duration. B asks for standard shipping cost. C asks “Can I return standard shipping packaging?” Predict the retrieval count and final node for each.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0010-check-the-question.py a
+.venv-langgraph/bin/python lessons/0010-check-the-question.py b
+.venv-langgraph/bin/python lessons/0010-check-the-question.py c</code></pre>
+<details><summary>Check after running</summary><p>A: one retrieval → generate. B: duration evidence is rejected, then the second retrieval finds no untried match → fallback after two attempts. C: the first passage is rejected because its question is unsupported; its second retrieval is empty → fallback after two attempts. On that empty retrieval, passage and source become empty while the tried list keeps its earlier entry. The second check reports “No passage was retrieved.”</p></details>
+<form data-quiz data-answer="a" data-explanation="The check must decide whether evidence fits what the question asks." data-hint="Find the node returning evidence_ok."><fieldset><legend>Which function needs to read the question to reject duration evidence for a cost question?</legend><label><input type="radio" name="q1" value="a"> The check_evidence function.</label><label><input type="radio" name="q1" value="b"> The generate function.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>5 · Give the retry useful cost evidence</h2>
+<p>Predict B again with the cost document available:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0010-check-the-question.py b --with-cost</code></pre>
+<ol><li><strong>Before retrieval:</strong> attempts is 0; tried sources is empty; the question asks for cost.</li><li><strong>First retrieval:</strong> duration passage and section 1 source enter state. Attempts becomes 1.</li><li><strong>First check:</strong> <code>evidence_ok: False</code>; the router permits a retry.</li><li><strong>Second retrieval:</strong> section 1 is skipped. The cost passage and section 2 source replace the earlier evidence. Attempts becomes 2; the tried list contains both sources.</li><li><strong>Second check:</strong> <code>evidence_ok: True</code>; generation uses cost evidence, even on the final allowed attempt.</li></ol>
+<details><summary>Check your final answer</summary><p>Standard shipping costs $5 per order. [Shipping policy, section 2]</p></details>
+<form data-quiz data-answer="b" data-explanation="Accepted evidence on attempt 2 still reaches generation." data-hint="Acceptance is checked before the attempt limit."><fieldset><legend>B has accepted cost evidence and attempts 2. What happens next?</legend><label><input type="radio" name="q2" value="a"> It uses fallback.</label><label><input type="radio" name="q2" value="b"> It generates output.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>Tell your teacher what you found</h2>
+<p>“B with --passage-only ended at __ but answered __ instead of __. The first wrong decision was in __. With the default check, A __, B __, and C __. B with --with-cost retrieved __ times and ended at __ because __.” Include B’s final sourced answer with --with-cost. Ask follow-up questions about anything unclear.</p>
+<footer><a href="0011-check-the-answer.html">Next lesson</a> · <a href="0009-skip-rejected-sources.html">Previous lesson</a> · <a href="../reference/question-aware-evidence.html">Question-aware evidence reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Primary reading: conditional edges</a></footer>
+</main></body></html>

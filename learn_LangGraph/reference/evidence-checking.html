@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evidence checking</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<p class="eyebrow">Quick reference</p><h1>Record a check, then route.</h1>
+<pre><code>retrieve → check_evidence → generate or fallback
+
+# The check node returns state updates:
+{"evidence_ok": False, "reason": "No passage was retrieved."}
+
+# The router returns a destination:
+return "generate" if state["evidence_ok"] else "fallback"</code></pre>
+<p>Connect retrieve to check_evidence with a fixed edge. Connect check_evidence to a router with a conditional edge. LangGraph applies the check’s update before calling that router. See the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">official conditional edges guide</a>.</p>
+<ol><li>Compare the question with retrieval’s passage.</li><li>Compare the check’s decision with that passage.</li><li>Compare the selected path with the stored decision.</li><li>If generation runs, compare its answer with its evidence.</li></ol>
+<p>A check can be wrong. Lesson 7’s exact-phrase rule can reject useful wording or accept misleading text. Fallback prevents an answer on rejected evidence; it does not fix retrieval.</p>
+<footer><a href="../lessons/0007-check-evidence-before-answering.html">Lesson 07</a> · <a href="conditional-routing.html">Routing reference</a> · <a href="diagnose-document-answers.html">Diagnosis reference</a></footer>
+</main></body></html>

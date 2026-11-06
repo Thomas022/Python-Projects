@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>02 · Your first Python graph</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 02 · 8 minutes</p><h1>Your first Python graph.</h1><p>Today’s win: run two Python functions in order and explain how the second receives data from the first.</p><p>You already identified generation as the place to investigate when correct evidence leads to a wrong answer. Now we’ll build that workflow.</p>
+<div class="card flow">START → retrieve → generate → END</div><p>This is a real LangGraph. Retrieval always returns one fixed passage; generation simply quotes it. It does not search files, call an LLM, or create a LangSmith trace yet.</p>
+<h2>Read the three moving parts</h2><p><strong>State:</strong> a dictionary shared between steps. <code>TypedDict</code> describes its keys for Python tooling; <code>total=False</code> lets keys be absent until a step supplies them. It does not fill in default values.</p><p><strong>Nodes:</strong> ordinary Python functions that receive state and return updates. Returning only <code>passage</code> and <code>source</code> keeps the existing <code>question</code>. For these fields, a later update to the same key replaces its earlier value.</p><p><strong>Edges:</strong> connections defining the execution order. <code>compile()</code> prepares the graph; <code>invoke()</code> runs it and returns the final state. <a href="https://docs.langchain.com/oss/python/langgraph/graph-api">Source: Graph API</a>.</p>
+<h2>Run it</h2><p>Open a terminal in this workspace. The isolated environment is already installed here:</p><pre><code>.venv-langgraph/bin/python lessons/0002-first-python-graph.py</code></pre><details><summary>Setup when using another computer</summary><p>With Python 3.10 or newer, run these from your project folder, then save the linked Python example under <code>lessons/</code>:</p><pre><code>python3 -m venv .venv-langgraph
+.venv-langgraph/bin/python -m pip install langgraph python-dotenv
+.venv-langgraph/bin/python lessons/0002-first-python-graph.py</code></pre><p>These environment paths are for macOS/Linux. <a href="https://docs.langchain.com/oss/python/langgraph/install">Official installation guide</a>.</p></details><p><a href="0002-first-python-graph.py">Open the full Python example</a>. Read it once, then run it:</p><pre><code>&quot;&quot;&quot;Real LangGraph execution; simulated retrieval and generation.&quot;&quot;&quot;
+from typing import TypedDict
+from langgraph.graph import END, START, StateGraph
+
+
+class State(TypedDict, total=False):
+    question: str
+    passage: str
+    source: str
+    answer: str
+
+
+def retrieve(state: State) -&gt; dict:
+    # Teaching stub: always selects this passage; no search yet.
+    return {
+        &quot;passage&quot;: &quot;Unused items can be returned within 30 days of delivery.&quot;,
+        &quot;source&quot;: &quot;Returns policy, section 2&quot;,
+    }
+
+
+def generate(state: State) -&gt; dict:
+    # Teaching stub: quotes the passage; no language model yet.
+    return {&quot;answer&quot;: f&#x27;{state[&quot;passage&quot;]} [{state[&quot;source&quot;]}]&#x27;}
+
+
+builder = StateGraph(State)
+builder.add_node(&quot;retrieve&quot;, retrieve)
+builder.add_node(&quot;generate&quot;, generate)
+builder.add_edge(START, &quot;retrieve&quot;)
+builder.add_edge(&quot;retrieve&quot;, &quot;generate&quot;)
+builder.add_edge(&quot;generate&quot;, END)
+graph = builder.compile()
+
+if __name__ == &quot;__main__&quot;:
+    initial_state = {&quot;question&quot;: &quot;How long do I have to return an unused item?&quot;}
+    result = graph.invoke(initial_state)
+    print(&quot;Question:&quot;, result[&quot;question&quot;])
+    print(&quot;Answer:&quot;, result[&quot;answer&quot;])
+</code></pre>
+<p>Expected answer:</p><pre><code>Answer: Unused items can be returned within 30 days of delivery. [Returns policy, section 2]</code></pre>
+<h2>Make a prediction, then change it</h2><p>Change <code>30 days</code> to <code>14 days</code> inside <code>retrieve</code>. Before rerunning, predict which printed line changes. Run again to check: the question stays the same; the answer now says <code>14 days</code>.</p><p>Trace the reason: retrieval returns a new passage → LangGraph puts it in state → generation reads that passage. Restore 30 days when finished.</p>
+<form data-quiz data-answer="c" data-explanation="The question remains in state because retrieval only updates passage and source." data-hint="A node returns changes to selected keys, rather than replacing the entire dictionary."><fieldset><legend>Retrieval returns only passage and source. What happens to the existing question?</legend><label><input type="radio" name="state" value="a"> It becomes empty</label><label><input type="radio" name="state" value="b"> It becomes passage</label><label><input type="radio" name="state" value="c"> It stays unchanged</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>Your turn</h2><p>Without looking back: why can <code>generate</code> read <code>state["passage"]</code> even though the initial input contains only <code>question</code>? Send your explanation and whether the script ran. Ask your teacher any follow-up questions or paste an error if you get stuck.</p><footer><a href="0001-document-answering-workflow.html">Previous lesson</a> · <a href="../reference/python-graph.html">Python graph reference</a> · Primary reading: <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#state">Graph API: State</a>. Next: <a href="0003-inspect-a-langsmith-trace.html">inspect this workflow with LangSmith</a>.</footer></main></body></html>

@@ -1,0 +1,45 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07 · Check evidence before answering</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 07 · 10 minutes</p>
+<h1>Check evidence before answering.</h1>
+<p>Today’s win: add a node that records an evidence decision, then route using that decision.</p>
+<div class="card"><strong>Recall from memory</strong><p>In Lesson 6, a shipping question receives a nonempty returns passage. Which node runs next, and why?</p><details><summary>Check your answer</summary><p>Generate runs because the router checks only whether the passage is nonempty. You correctly identified this limit.</p></details></div>
+<h2>1 · Separate checking from choosing</h2>
+<p>Our question today is fixed: <strong>“How long does standard shipping take?”</strong> We introduce <code>check_evidence</code> between retrieval and routing. It returns two state updates: <code>evidence_ok</code>, a Boolean (<code>True</code> or <code>False</code>), and <code>reason</code>, a short explanation.</p>
+<pre aria-label="Graph with evidence checking"><code>START → retrieve → check_evidence
+                     ├─ evidence_ok is True  → generate → END
+                     └─ evidence_ok is False → fallback → END</code></pre>
+<p>The check node records a decision. The router reads that decision and returns a node name. This uses the same node/state and conditional-edge behavior described in the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#state">official state guide</a> and <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">conditional edges guide</a>.</p>
+<pre><code>def choose_next(state: State) -&gt; Literal["generate", "fallback"]:
+    return "generate" if state["evidence_ok"] else "fallback"
+
+builder.add_edge("retrieve", "check_evidence")
+builder.add_conditional_edges("check_evidence", choose_next)</code></pre>
+<p>The conditional edge now leaves <code>check_evidence</code>, so the decision is stored before the router reads it.</p>
+<h2>2 · A small, visible checking rule</h2>
+<p>For this exercise, the check rejects empty evidence and accepts a passage containing the exact phrase <code>standard shipping takes</code>, ignoring letter case. Everything else is rejected. Read <code>check_evidence</code> in the <a href="0007-check-evidence-before-answering.py">Python example</a>.</p>
+<div class="card"><strong>This rule is deliberately narrow.</strong><p>It works for today’s controlled passages and fixed question. It does not understand meaning: “Standard shipping arrives in 3 to 5 business days” is useful evidence but fails the phrase check. A misleading sentence containing the accepted phrase could pass. We are learning where to put a check and how its result travels, rather than building a general relevance checker.</p></div>
+<h2>3 · Follow the state in Case A</h2>
+<ol><li><strong>Before retrieval:</strong> state contains the shipping question and <code>case: "a"</code>.</li><li><strong>After retrieval:</strong> state also contains a returns passage about 21 days and its source.</li><li><strong>After checking:</strong> those fields remain. State now also contains <code>evidence_ok: False</code> and <code>reason: "The passage does not state standard shipping duration."</code>.</li><li><strong>At routing:</strong> the router reads <code>False</code> and selects <code>fallback</code>.</li><li><strong>After fallback:</strong> state contains an answer explaining that the retrieved evidence cannot answer the question. Generate did not run.</li></ol>
+<p>Retrieval still selected the wrong passage. The new check prevents this example from quoting it as an answer; it does not repair retrieval or find a better passage.</p>
+<h2>4 · Predict three runs</h2>
+<p>Case A retrieves the returns passage, B retrieves the shipping passage, and C retrieves nothing. Before running, predict each check’s Boolean and the next node. These are fixed examples with simulated generation; no model or search service is called, and earlier lesson edits do not affect them.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0007-check-evidence-before-answering.py a
+.venv-langgraph/bin/python lessons/0007-check-evidence-before-answering.py b
+.venv-langgraph/bin/python lessons/0007-check-evidence-before-answering.py c</code></pre>
+<p>Compare the printed <code>passage</code>, <code>evidence_ok</code>, <code>reason</code>, and <code>Node:</code> lines with your predictions.</p>
+<details><summary>Check after running</summary><p>A: False → fallback, because the nonempty returns passage fails the rule. B: True → generate, quoting 3 to 5 business days with its shipping source. C: False → fallback, because no passage was retrieved. All three runs execute retrieve and check_evidence first.</p></details>
+<form data-quiz data-answer="c" data-explanation="check_evidence returns a dictionary that adds the Boolean and reason to state." data-hint="Find the node that returns the evidence_ok field."><fieldset><legend>Which function stores the evidence decision?</legend><label><input type="radio" name="q1" value="a"> The retrieve function.</label><label><input type="radio" name="q1" value="b"> The choose_next function.</label><label><input type="radio" name="q1" value="c"> The check_evidence function.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<form data-quiz data-answer="b" data-explanation="The check changes the path; retrieval still returns irrelevant evidence." data-hint="Inspect Case A's retrieval output after adding the check."><fieldset><legend>Case A takes fallback. What happened to retrieval’s fault?</legend><label><input type="radio" name="q2" value="a"> It was repaired.</label><label><input type="radio" name="q2" value="b"> It remains present.</label><label><input type="radio" name="q2" value="c"> It became generation.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>5 · Challenge the rule</h2>
+<p>In the new Python file, change Case B’s passage to <code>Standard shipping arrives in 3 to 5 business days.</code> Keep its source and the question unchanged. Predict the check’s output, then rerun B.</p>
+<details><summary>Check after your edit</summary><p>The passage still answers the question, but evidence_ok becomes False and fallback runs: the phrase “standard shipping takes” is absent. This is a checking error, not a retrieval error. Compare the question, retrieved passage, and check output to locate it.</p></details>
+<p>Now change the condition to accept either <code>"standard shipping takes"</code> or <code>"standard shipping arrives"</code> in the lowercased passage. Rerun B and also A and C to check that the rejected cases still take fallback.</p>
+<details><summary>One possible code change</summary><pre><code>passage = state["passage"].lower()
+if "standard shipping takes" in passage or "standard shipping arrives" in passage:
+    return {"evidence_ok": True, "reason": "The passage states standard shipping duration."}</code></pre><p>Replace the old phrase condition and its return with these lines inside check_evidence, after the empty-passage check. B should now reach generate. A and C should still reach fallback. This improves the rule for these examples; other wording can still fail it.</p></details>
+<p>Optional: use <a href="0003-inspect-a-langsmith-trace.html">Lesson 3’s tracing setup</a> and inspect runs named <code>lesson-07-case-a</code>, <code>lesson-07-case-b</code>, or <code>lesson-07-case-c</code>. Follow retrieval output → check input → check output → selected node input. Tracing sends the question, passages, and answers to your workspace. When finished, use <code>LANGSMITH_TRACING=false</code> in the project’s <code>.env</code> file in that terminal.</p>
+<h2>Tell your teacher what you found</h2>
+<p>“Case A’s check returned __, so the router chose __. Retrieval’s original problem __. Changing ‘takes’ to ‘arrives’ made Case B __ because __. After my rule change, A, B, and C took __.” Include the final Case B answer. Ask follow-up questions about anything unclear. Next time, recall which function stores a decision and which function chooses a destination.</p>
+<footer><a href="0006-route-without-evidence.html">Previous lesson</a> · <a href="../reference/evidence-checking.html">Evidence-check reference</a> · Primary reading: <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Conditional edges</a></footer>
+<p><a href="0008-retry-retrieval-once.html">Next lesson: Retry retrieval once →</a></p>
+</main></body></html>

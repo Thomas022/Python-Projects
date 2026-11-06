@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Conditional routing</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<p class="eyebrow">Quick reference</p><h1>Choose the next node.</h1>
+<p>A node returns a dictionary of state updates. A routing function reads current state and returns the destination name.</p>
+<pre><code>def choose_next(state):
+    return "generate" if state["passage"] else "fallback"
+
+builder.add_conditional_edges("retrieve", choose_next)
+builder.add_edge("generate", END)
+builder.add_edge("fallback", END)</code></pre>
+<ol><li>Retrieval returns its update.</li><li>LangGraph applies that update to state.</li><li>The router reads that state and selects a destination.</li><li>The selected node runs and returns its own update.</li></ol>
+<p>Register both destination nodes before compiling. Replace the fixed edge from retrieval with the conditional edge; keeping both can run both paths. See the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#edges">official edges guide</a>.</p>
+<p>An empty passage selects fallback in this example. A nonempty passage selects generation, even if that passage is irrelevant. Check relevance separately using the question and the passage.</p>
+<footer><a href="../lessons/0006-route-without-evidence.html">Lesson 06</a> · <a href="diagnose-document-answers.html">Diagnosis reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Official conditional edges guide</a></footer>
+</main></body></html>

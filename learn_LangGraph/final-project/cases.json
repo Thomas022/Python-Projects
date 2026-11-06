@@ -1,0 +1,44 @@
+[
+  {
+    "question": "cost",
+    "mode": "good",
+    "expected_status": "released",
+    "expected_answer": "Standard shipping costs $5 per order. [shipping.txt#paragraph-2]"
+  },
+  {
+    "question": "receipt",
+    "mode": "good",
+    "expected_status": "released",
+    "expected_answer": "Returns require the original receipt. [returns.txt#paragraph-2]"
+  },
+  {
+    "question": "cost",
+    "mode": "wrong_price",
+    "expected_status": "draft_rejected",
+    "expected_answer": null
+  },
+  {
+    "question": "cost",
+    "mode": "wrong_source",
+    "expected_status": "draft_rejected",
+    "expected_answer": null
+  },
+  {
+    "question": "cost",
+    "mode": "extra_claim",
+    "expected_status": "draft_rejected",
+    "expected_answer": null
+  },
+  {
+    "question": "warranty",
+    "mode": "good",
+    "expected_status": "evidence_rejected",
+    "expected_answer": null
+  },
+  {
+    "question": "shipping insurance",
+    "mode": "good",
+    "expected_status": "evidence_rejected",
+    "expected_answer": null
+  }
+]

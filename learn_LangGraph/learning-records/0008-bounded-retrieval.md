@@ -1,0 +1,3 @@
+# Bounded retrieval and state replacement
+
+The learner correctly reported that with a limit of 2, A retrieved twice and generated, its shipping passage and source replaced the returns evidence, and C exhausted the limit without evidence. With a limit of 1, A used fallback while B generated. They supplied A’s correct sourced final answer. These observations match Lesson 8’s code; no learner execution trace was supplied. Clarified that C terminates through fallback rather than an execution error. Next: make retry search skip previously tried sources instead of selecting evidence by attempt number.

@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Answer checking</title><link rel="stylesheet" href="../assets/course.css"></head><body><main>
+<h1>Check the draft against accepted evidence</h1>
+<p>Evidence checking asks whether a passage answers the question. Answer checking asks whether the generated draft follows that evidence and includes its source.</p>
+<p>Keep passage, draft, and answer in separate state fields so a failed draft can be inspected without being released as the answer. A node writes answer_ok; a conditional edge reads it and routes to release or rejection.</p>
+<p>Lesson 11 requires an exact quotation with its citation. Equality is sufficient for that format, but rejects paraphrases. A citation-only check cannot detect a changed price. Neither check establishes the underlying document’s truth.</p>
+<p><a href="../lessons/0011-check-the-answer.html">Practice in Lesson 11</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Official conditional-edge documentation</a></p>
+</main></body></html>

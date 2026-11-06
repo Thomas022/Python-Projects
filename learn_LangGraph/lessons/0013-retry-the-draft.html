@@ -1,0 +1,52 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13 · Retry the draft</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script><script src="../assets/results-table.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 13 · 10 minutes</p>
+<h1>Retry the draft, keep the evidence</h1>
+<p>Today’s win: give a rejected draft one more generation attempt without retrieving the same accepted evidence again.</p>
+<div class="card"><strong>Quick recall</strong><p>Generate writes a $50 draft. Which field still contains the $5 evidence?</p><details><summary>Check</summary><p><code>passage</code>. The Boolean decision belongs to <code>answer_ok</code>, a separate field.</p></details></div>
+<h2>1 · Choose what needs another attempt</h2>
+<p>In Lesson 12, a rejected draft ended the run. Now we allow one generation retry. Evidence that answers the question is already in state: generation can use it again.</p>
+<pre><code>Rejected evidence → retrieve again (existing retrieval limit)
+Rejected draft    → generate again (new generation limit)
+Accepted draft    → release
+Two rejected drafts → reject_answer</code></pre>
+<p>Open the <a href="0013-retry-the-draft.py">Python example</a>. It keeps the two-retrieval limit and adds <code>generation_attempts</code> with <code>MAX_GENERATIONS = 2</code>. Two total generation attempts means one initial draft and one retry.</p>
+<h2>2 · Read the new routing rule</h2>
+<pre><code>def choose_answer(state):
+    if state["answer_ok"]:
+        return "release"
+    if state["generation_attempts"] &lt; MAX_GENERATIONS:
+        return "generate"
+    return "reject_answer"</code></pre>
+<p>Check acceptance first. A correct second draft should still be released even though it uses the last allowed attempt. The <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">conditional edge</a> after check_answer can now route back to generate.</p>
+<div class="card"><strong>What makes the retry different?</strong><p>This is a local simulation, with no model call. In <code>repair</code>, generate deliberately writes $50 on its first attempt and copies the correct $5 passage on its second. In <code>stuck</code>, it writes $50 both times. A retry limit prevents endless repetition; it does not guarantee improvement.</p></div>
+<h2>3 · Predict, run, compare</h2>
+<p>All three modes ask for shipping cost and include the cost document. Predict generation attempts and the final node, then run:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0013-retry-the-draft.py good
+.venv-langgraph/bin/python lessons/0013-retry-the-draft.py repair
+.venv-langgraph/bin/python lessons/0013-retry-the-draft.py stuck</code></pre>
+<p>Each run ends with a short summary. Use it for the results table below. Look at the node log to compare the two drafts in repair.</p>
+<details><summary>Check the paths after running</summary><p>Every mode retrieves twice: first duration, then cost. Good generates once and releases $5. Repair generates $50, rejects it, generates $5, and releases it. Stuck generates $50 twice, then reaches reject_answer with a refusal.</p></details>
+<h2>4 · Follow the repair state</h2>
+<ol><li><strong>Before the first draft:</strong> attempts is 2; generation_attempts is 0; passage says $5.</li><li><strong>First generate:</strong> generation_attempts becomes 1; draft says $50; passage stays $5. Generate resets answer_ok to False while its new draft awaits checking.</li><li><strong>First check_answer:</strong> answer_ok is False. The router returns generate because one generation attempt remains.</li><li><strong>Second generate:</strong> generation_attempts becomes 2; the $5 draft replaces the $50 draft. Passage stays $5, and retrieval attempts stays 2.</li><li><strong>Second check_answer:</strong> answer_ok becomes True. Release copies the current draft into answer.</li></ol>
+<p>The new generate call replaces draft rather than building a draft history. The earlier $50 draft is visible in the execution log. During generation, answer_ok False means the draft is not yet accepted; check_answer makes the decision afterward.</p>
+<form data-quiz data-answer="b" data-explanation="The evidence is already accepted. The rejected draft needs another generation attempt." data-hint="Which step wrote $50?"><fieldset><legend>After the first $50 draft is rejected in repair, where does the router go?</legend><label><input type="radio" name="q1" value="a"> retrieve</label><label><input type="radio" name="q1" value="b"> generate</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>Send your results</h2>
+<p>Choose your results below and write your explanation. You can save them for your teacher to check, or use Check table for immediate feedback. “Final draft price” means the price in draft, even if the final answer is a refusal.</p>
+<form data-results-table data-lesson-id="13">
+<script type="application/json" id="saved-lesson-answers">{}</script>
+<div class="results-scroll" role="region" aria-label="Lesson results table" tabindex="0">
+<table class="results-table"><caption>Lesson 13 results</caption><thead><tr><th scope="col">Mode</th><th scope="col">Retrievals</th><th scope="col">Generations</th><th scope="col">Final draft price</th><th scope="col">Final node</th></tr></thead><tbody>
+<tr><th scope="row">good</th><td><select name="good-retrievals" aria-label="good: Retrievals"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-generations" aria-label="good: Generations"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-price" aria-label="good: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="good-node" aria-label="good: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">repair</th><td><select name="repair-retrievals" aria-label="repair: Retrievals"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-generations" aria-label="repair: Generations"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-price" aria-label="repair: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="repair-node" aria-label="repair: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">stuck</th><td><select name="stuck-retrievals" aria-label="stuck: Retrievals"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-generations" aria-label="stuck: Generations"><option value="">Choose…</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-price" aria-label="stuck: Final draft price"><option value="">Choose…</option><option>$5</option><option>$50</option></select><span class="cell-feedback"></span></td><td><select name="stuck-node" aria-label="stuck: Final node"><option value="">Choose…</option><option>release</option><option>reject_answer</option><option>fallback</option></select><span class="cell-feedback"></span></td></tr>
+</tbody></table></div>
+<p><label for="retry-reason"><strong>One question:</strong> Why does repair retry generate instead of retrieve? One sentence is enough.</label><textarea id="retry-reason" name="reason" rows="3"></textarea></p>
+<div class="results-actions"><button type="button" data-save-results>Save answers into HTML</button><button type="submit">Check table</button><button type="button" data-copy-results>Copy results for chat</button></div>
+<p>Click <strong>Save answers into HTML</strong>, select this lesson’s original file (<code>Desktop/learn/lessons/0013-retry-the-draft.html</code>), and allow writing when your browser asks. Then tell your teacher: “Check my Lesson 13 answers.” Your answers will be restored when you reopen the saved file. Save again after editing. If the button reports that saving is unavailable, try Chrome or Edge, or copy your results into chat.</p>
+<p class="feedback" data-results-feedback role="status" aria-live="polite"></p>
+<p hidden data-copy-help>Copy the text below and paste it into chat:</p>
+<textarea hidden data-results-export aria-label="Results to copy" rows="7" readonly></textarea>
+</form>
+<noscript><p>Enable JavaScript to save, check, and copy results. You can still fill the table and share your selections manually.</p></noscript>
+<footer><a href="0014-use-repair-feedback.html">Next lesson</a> · <a href="0012-follow-the-first-wrong-step.html">Previous lesson</a> · <a href="../reference/generation-retries.html">Generation-retry reference</a> · <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Primary reading: conditional edges</a></footer>
+</main></body></html>

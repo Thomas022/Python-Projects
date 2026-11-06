@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>06 · Route when evidence is missing</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 06 · 10 minutes</p>
+<h1>Route when evidence is missing.</h1>
+<p>Today’s win: make your document assistant choose between quoting a retrieved passage and reporting that no passage was found.</p>
+<div class="card"><strong>Recall from memory</strong><p>Generation receives a passage saying 3 to 5 business days, then answers 21 business days. Where is the first visible problem? What two values support your diagnosis?</p><details><summary>Check your answer</summary><p>Generation: its input contains 3 to 5 business days, but its output claims 21. This is the fault you repaired in Lesson 5.</p></details></div>
+<h2>1 · Let state choose the next step</h2>
+<p>In Lesson 4, both matching and unmatched questions reached <code>generate</code>. An <code>if</code> inside that node handled missing evidence. Today we move that choice into the graph: after retrieval, run <code>generate</code> if a passage exists, or run a new <code>fallback</code> node if it does not.</p>
+<pre aria-label="Two possible graph paths"><code>Passage found:  START → retrieve → generate → END
+Passage empty:  START → retrieve → fallback → END</code></pre>
+<p>A <strong>conditional edge</strong> calls a routing function after a node finishes. That function reads the updated state and returns the next node’s name. See the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">official conditional edges guide</a>.</p>
+<pre><code>def choose_next(state: State) -&gt; Literal["generate", "fallback"]:
+    return "generate" if state["passage"] else "fallback"
+
+builder.add_conditional_edges("retrieve", choose_next)</code></pre>
+<p>Python treats an empty string, <code>""</code>, as false. A nonempty passage chooses <code>generate</code>. <code>Literal</code> lists the two possible return values; it does not make the decision. The router returns a node name, while the nodes return dictionaries that update state.</p>
+<p>The old <code>builder.add_edge("retrieve", "generate")</code> is absent. Keeping it would also schedule generation, even when the conditional edge selects fallback. Use one routing mechanism from retrieval, as explained in the <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#edges">official edges guide</a>.</p>
+<h2>2 · Follow one missing-evidence run</h2>
+<ol><li><strong>Before retrieval:</strong> state contains <code>question: "Is there a warranty?"</code>.</li><li><strong>After retrieval:</strong> state still contains that question, plus <code>passage: ""</code> and <code>source: ""</code>.</li><li><strong>At the choice:</strong> <code>choose_next</code> reads the empty passage and returns <code>"fallback"</code>. It adds no state fields.</li><li><strong>After fallback:</strong> state also contains <code>answer: "I could not find a matching passage in these documents."</code>. Generation did not run.</li></ol>
+<p>This reports what retrieval found in our small document collection. It does not claim that a warranty does not exist.</p>
+<h2>3 · Predict, then run</h2>
+<p>Use the <a href="0006-route-without-evidence.py">Python example</a>. It reuses Lesson 4’s tiny keyword search and quotes fixed text; no model or search service is called. Predict the node after retrieval for each question before running:</p>
+<pre><code>.venv-langgraph/bin/python lessons/0006-route-without-evidence.py "How long does shipping take?"
+.venv-langgraph/bin/python lessons/0006-route-without-evidence.py "Is there a warranty?"
+.venv-langgraph/bin/python lessons/0006-route-without-evidence.py "Can I return an unused item?"</code></pre>
+<p>The example prints each executed node’s update using <code>graph.stream(..., stream_mode="updates")</code>. Use the <code>Node:</code> lines to check which path actually ran. Streaming here only makes execution visible; the new concept to learn is conditional routing.</p>
+<details><summary>Check the three paths after running</summary><p>Shipping: retrieve → generate, with 3 to 5 business days. Warranty: retrieve → fallback, with no matching passage. Return: retrieve → generate, with 21 days of delivery.</p></details>
+<h2>4 · Check your understanding</h2>
+<form data-quiz data-answer="b" data-explanation="The router chooses fallback when passage is empty." data-hint="Read the else part of choose_next."><fieldset><legend>Retrieval returns an empty passage. What runs next?</legend><label><input type="radio" name="q1" value="a"> The generate node.</label><label><input type="radio" name="q1" value="b"> The fallback node.</label><label><input type="radio" name="q1" value="c"> The retrieve node.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<form data-quiz data-answer="a" data-explanation="choose_next returns a destination name; retrieve and fallback return state updates." data-hint="Compare the router's return with a node's dictionary return."><fieldset><legend>What does choose_next return?</legend><label><input type="radio" name="q2" value="a"> A node name.</label><label><input type="radio" name="q2" value="b"> A source label.</label><label><input type="radio" name="q2" value="c"> A passage string.</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>5 · Change the evidence, predict the path</h2>
+<p>Add this dictionary to <code>DOCUMENTS</code> in the new Python file:</p>
+<pre><code>{
+    "keywords": {"warranty"},
+    "passage": "The warranty lasts 12 months from purchase.",
+    "source": "Warranty policy, section 3",
+},</code></pre>
+<p>Rerun the same warranty question. Predict which retrieval output will change and which node will now run. Check both in the terminal.</p>
+<details><summary>Check after your edit</summary><p>The question stays unchanged. Retrieval now returns the warranty passage and source. The router selects generate, and the answer quotes 12 months with the warranty source.</p></details>
+<div class="card"><strong>A limit to remember</strong><p>This router checks only whether a passage exists. A shipping question that receives the irrelevant returns passage from Lesson 5 Case A would still reach generation. A nonempty passage does not prove relevance. Keep using your question → passage and passage → answer comparisons.</p></div>
+<p>Optional: with <a href="0003-inspect-a-langsmith-trace.html">Lesson 3’s tracing setup</a>, compare the warranty runs before and after your edit in LangSmith. The run name is <code>lesson-06-route-without-evidence</code>. Inspect retrieval’s output and the selected node. Tracing sends the question, passages, and answers to your workspace. When finished, use <code>LANGSMITH_TRACING=false</code> in the project’s <code>.env</code> file in that terminal.</p>
+<h2>Tell your teacher what you found</h2>
+<p>“Before adding the warranty document, retrieval returned __ and the next node was __. After adding it, retrieval returned __ and the next node was __. A nonempty but irrelevant passage would __.” Include the final answer and ask follow-up questions about anything unclear. Next time, recall how a node’s return differs from a router’s return before opening this lesson.</p>
+<footer><a href="0005-find-the-first-wrong-step.html">Previous lesson</a> · <a href="0007-check-evidence-before-answering.html">Next lesson</a> · <a href="../reference/conditional-routing.html">Routing reference</a> · Primary reading: <a href="https://docs.langchain.com/oss/python/langgraph/graph-api#conditional-edges">Conditional edges</a></footer>
+</main></body></html>

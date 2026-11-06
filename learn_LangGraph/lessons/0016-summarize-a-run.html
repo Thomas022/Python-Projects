@@ -1,0 +1,48 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>16 · Summarize a run</title><link rel="stylesheet" href="../assets/course.css"><script src="../assets/quiz.js" defer></script><script src="../assets/results-table-16.js" defer></script></head><body><main>
+<p class="eyebrow">LangGraph + LangSmith · Lesson 16 · 10 minutes</p>
+<h1>Summarize what happened</h1>
+<p>Today’s win: turn the final state into a short report of the work done and how the run ended.</p>
+<div class="card"><strong>Quick recall</strong><p>Does keeping a rejected draft automatically stop the same mistake?</p><details><summary>Check</summary><p>No. History lets us inspect earlier attempts. Generation must use feedback or history to change its behavior.</p></details></div>
+<h2>1 · One report for every ending</h2>
+<p>Add summarize after each existing ending. Release, reject_answer, and fallback set an outcome before reaching the same reporting node.</p>
+<pre><code>release       → outcome = "released"       → summarize → END
+reject_answer → outcome = "draft_rejected" → summarize → END
+fallback      → outcome = "no_evidence"    → summarize → END</code></pre>
+<p>Summarize is now the last executed node in every mode. The outcome field preserves why the run ended. A summary reports what happened; it does not change the answer or acceptance decision.</p>
+<h2>2 · Count from state</h2>
+<pre><code>history = state["draft_history"]
+summary = {
+    "retrievals": state["attempts"],
+    "generations": state["generation_attempts"],
+    "checks": len(history),
+    "rejected_drafts": sum(not entry["accepted"] for entry in history),
+    "outcome": state["outcome"],
+}
+return {"run_summary": summary}</code></pre>
+<p>Each history entry represents one answer check. The sum counts rejected entries: not False is True, which contributes 1; not True is False, which contributes 0. Checks here means answer checks, not evidence checks. Generations and answer checks match in this graph because every generated draft goes straight to check_answer.</p>
+<h2>3 · Predict, run, compare</h2>
+<p>Open the <a href="0016-summarize-a-run.py">Python example</a>. Good, repair, and stuck work as before. Missing removes the cost document, so evidence checking uses the retrieval budget and chooses fallback before any draft is generated. This is still a local simulation with no model call.</p>
+<pre><code>.venv-langgraph/bin/python lessons/0016-summarize-a-run.py good
+.venv-langgraph/bin/python lessons/0016-summarize-a-run.py repair
+.venv-langgraph/bin/python lessons/0016-summarize-a-run.py stuck
+.venv-langgraph/bin/python lessons/0016-summarize-a-run.py missing</code></pre>
+<p>Fill the table using the final Run summary line. A retrieval attempt counts even when it finds no passage. A refusal is an answer, but it is not a generated draft in this exercise.</p>
+<h2>4 · Follow repair before and after</h2>
+<ol><li><strong>After the two checks:</strong> generation_attempts is 2; history decisions are [False, True].</li><li><strong>Release:</strong> answer becomes the $5 draft and outcome becomes released.</li><li><strong>Summarize:</strong> reads those fields and creates run_summary with 2 retrievals, 2 generations, 2 checks, and 1 rejected draft.</li><li><strong>At END:</strong> answer still says $5. The report records that one earlier draft failed.</li></ol>
+<p>Missing instead has an empty draft history: zero generations, zero answer checks, and zero rejected drafts. Its outcome is no_evidence. Zero rejected drafts alone does not prove that an answer was released.</p>
+<form data-quiz data-answer="b" data-explanation="Every path ends at summarize, so outcome tells you whether a draft was released, rejected, or never generated." data-hint="All modes share the last node."><fieldset><legend>Which field distinguishes the different endings now?</legend><label><input type="radio" name="q1" value="a"> The last node name: summarize</label><label><input type="radio" name="q1" value="b"> outcome</label><button type="submit">Check answer</button><p class="feedback" role="status" aria-live="polite"></p></fieldset></form>
+<h2>Send your results</h2>
+<p>Use the summary to fill this table, then answer one question.</p>
+<form data-results-table data-lesson-id="16"><script type="application/json" id="saved-lesson-answers">{}</script>
+<div class="results-scroll" role="region" aria-label="Lesson results table" tabindex="0"><table class="results-table"><caption>Lesson 16 results</caption><thead><tr><th scope="col">Mode</th><th scope="col">Retrievals</th><th scope="col">Answer checks</th><th scope="col">Rejected drafts</th><th scope="col">Outcome</th></tr></thead><tbody>
+<tr><th scope="row">good</th><td><select name="good-retrievals" aria-label="good: Retrievals"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-checks" aria-label="good: Answer checks"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-rejected" aria-label="good: Rejected drafts"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="good-outcome" aria-label="good: Outcome"><option value="">Choose…</option><option>released</option><option>draft_rejected</option><option>no_evidence</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">repair</th><td><select name="repair-retrievals" aria-label="repair: Retrievals"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-checks" aria-label="repair: Answer checks"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-rejected" aria-label="repair: Rejected drafts"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="repair-outcome" aria-label="repair: Outcome"><option value="">Choose…</option><option>released</option><option>draft_rejected</option><option>no_evidence</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">stuck</th><td><select name="stuck-retrievals" aria-label="stuck: Retrievals"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-checks" aria-label="stuck: Answer checks"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-rejected" aria-label="stuck: Rejected drafts"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="stuck-outcome" aria-label="stuck: Outcome"><option value="">Choose…</option><option>released</option><option>draft_rejected</option><option>no_evidence</option></select><span class="cell-feedback"></span></td></tr>
+<tr><th scope="row">missing</th><td><select name="missing-retrievals" aria-label="missing: Retrievals"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="missing-checks" aria-label="missing: Answer checks"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="missing-rejected" aria-label="missing: Rejected drafts"><option value="">Choose…</option><option>0</option><option>1</option><option>2</option></select><span class="cell-feedback"></span></td><td><select name="missing-outcome" aria-label="missing: Outcome"><option value="">Choose…</option><option>released</option><option>draft_rejected</option><option>no_evidence</option></select><span class="cell-feedback"></span></td></tr></tbody></table></div><p><label for="summary-reason"><strong>One question:</strong> Why does missing have zero rejected drafts even though it does not release a draft?</label><textarea id="summary-reason" name="reason" rows="3"></textarea></p><div class="results-actions"><button type="button" data-save-results>Save answers into HTML</button><button type="submit">Check table</button><button type="button" data-copy-results>Copy results for chat</button></div>
+<p>Click <strong>Save answers into HTML</strong>, select this lesson’s original file (<code>Desktop/learn/lessons/0016-summarize-a-run.html</code>), and allow writing when your browser asks. Then tell your teacher: “Check my Lesson 16 answers.” Your answers will be restored when you reopen the saved file. Save again after editing. If the button reports that saving is unavailable, try Chrome or Edge, or copy your results into chat.</p>
+<p class="feedback" data-results-feedback role="status" aria-live="polite"></p>
+<p hidden data-copy-help>Copy the text below and paste it into chat:</p>
+<textarea hidden data-results-export aria-label="Results to copy" rows="7" readonly></textarea>
+</form>
+<noscript><p>Enable JavaScript to save, check, and copy results. You can still fill the table and share your selections manually.</p></noscript>
+<footer><a href="0017-trace-retries.html">Next lesson</a> · <a href="0015-keep-draft-history.html">Previous lesson</a></footer></main></body></html>
